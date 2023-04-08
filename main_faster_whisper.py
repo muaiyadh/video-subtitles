@@ -101,7 +101,7 @@ if __name__=="__main__":
     
     # Add arguments
     parser.add_argument('--input', '-i', type=str, help='Path to input WAV audio file', required=True)
-    parser.add_argument('--model', '-m', default="whisper-large-v2-ct2/", type=str, help='Path to CT2 Whisper model')
+    parser.add_argument('--model', '-m', default="large-v2", type=str, help='Name of/Path to CT2 Whisper model')
     parser.add_argument('--output', '-o', type=str, help='Path to output SRT file. Uses the input file with SRT extension if not specified')
     parser.add_argument('--device', type=str, default="cuda", help='Device to use during transcription ("cuda" or "cpu")')
     parser.add_argument('--device_index', type=int, default=0, help='Device ID to use during transcription')
