@@ -36,8 +36,8 @@ def segment_to_srt(line_number, segment):
         LINE_NUM
         START --> END
         Content
-	
-	
+    
+    
     '''
     lines = f"{line_number}\n{sec_to_timestamp(segment.start)} --> {sec_to_timestamp(segment.end)}\n{segment.text.strip()}\n\n"
     return lines
@@ -69,14 +69,16 @@ def main(args, logger):
     model_path = Path(args.model).expanduser().as_posix()
     input_file_path = Path(args.input).expanduser()
     output_srt_path = input_file_path.with_suffix('.srt')
+    vad_filter = args.remove_silence
+    language = args.language if args.language != 'None' else None
     
     # Handle if SRT file already exists
     if os.path.exists(output_srt_path):
         if not args.ignore_if_exists:
             # If SRT file already exists, raise error to avoid overwriting data
-            raise FileExistsError("The SRT file for this audio already exists. Try manually choosing the file name using --output or -o.")
+            raise FileExistsError(f"The '{output_srt_path.stem}' SRT file for this audio already exists. Try manually choosing the file name using --output or -o.")
         else:
-            logger.info("The SRT file for this audio already exists. Exiting...")
+            logger.info(f"The '{output_srt_path.stem}' SRT file for this audio already exists. Exiting...")
             return
     
     # Load model
@@ -87,7 +89,7 @@ def main(args, logger):
     logger.debug(type(input_file_path))
     logger.debug(input_file_path)
     logger.info(f"Starting transcription for file {input_file_path.stem}")
-    segments, info = model.transcribe(input_file_path.as_posix(), beam_size=args.beam_size)
+    segments, info = model.transcribe(input_file_path.as_posix(), beam_size=args.beam_size, vad_filter=vad_filter, language=language)
     
     # Write transcribed data to SRT file
     write_segments_to_srt(segments, output_srt_path, logger)
@@ -103,11 +105,13 @@ if __name__=="__main__":
     parser.add_argument('--input', '-i', type=str, help='Path to input WAV audio file', required=True)
     parser.add_argument('--model', '-m', default="large-v2", type=str, help='Name of/Path to CT2 Whisper model')
     parser.add_argument('--output', '-o', type=str, help='Path to output SRT file. Uses the input file with SRT extension if not specified')
+    parser.add_argument('--language', '-l', default="None", type=str, help='Manually specify the language. Detects the language if not specified')
     parser.add_argument('--device', type=str, default="cuda", help='Device to use during transcription ("cuda" or "cpu")')
     parser.add_argument('--device_index', type=int, default=0, help='Device ID to use during transcription')
     parser.add_argument('--compute_type', type=str, default="auto", help='Compute type to use during transcription ("default", "auto", "int8", "int8_float16", "int16", "float16", "float32')
     parser.add_argument('--beam_size', type=int, default=5, help='Beam size to use for decoding')
     parser.add_argument('--ignore_if_exists', action='store_true', help='Exit program if SRT file for it or chosen output already exist')
+    parser.add_argument('--remove_silence', action='store_true', help='Enables the VAD filter (Silero VAD) to remove silence longer than 2 seconds')
     parser.add_argument('--debug', action='store_true', help='Enable debug (prints full SRT to terminal)')
     
     args = parser.parse_args()
